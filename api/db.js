@@ -1,19 +1,25 @@
-// db.js
-import { Pool } from "pg";
-import dotenv from "dotenv";
+// api/db.js
+import pkg from 'pg';
+const { Pool } = pkg;
 
-dotenv.config();
+const connectionString = process.env.DATABASE_URL;
 
-const connectionString = process.env.POSTGRES_URL;
 if (!connectionString) {
-  throw new Error("Missing POSTGRES_URL environment variable.");
+  throw new Error('DATABASE_URL not set');
 }
 
-// Reuse pool between invocations (Vercel optimization)
+// Reuse pool across lambda calls (avoids too many DB connections)
 let pool;
-if (!global._pgPool) {
-  global._pgPool = new Pool({ connectionString });
+if (global.__pgPool) {
+  pool = global.__pgPool;
+} else {
+  pool = new Pool({
+    connectionString,
+    // some hosts require SSL; if your provider needs it, uncomment:
+    // ssl: { rejectUnauthorized: false }
+  });
+  global.__pgPool = pool;
 }
-pool = global._pgPool;
 
 export default pool;
+
